@@ -8,8 +8,8 @@ import CurrencyFormat from 'react-currency-format';
 import { getBasketTotal } from './reducer';
 import axios from './axios';
 import { useHistory } from 'react-router-dom';
-import { CardTravelSharp } from '@material-ui/icons';
-import { Card } from '@material-ui/core';
+import db from './firebase';
+import { doc, setDoc } from "firebase/firestore";
 
 function Payment() {
   const history = useHistory();
@@ -26,37 +26,56 @@ function Payment() {
 
   useEffect(() => {
     // generate the special stripe secret which allows us to charge a customer
+
     const getClientSecret = async () => {
         const response = await axios({
             method: 'post',
-            // Stripe expects the total in a currencies subunits
+            //Stripe expects the total in a currencies subunits
             url: `/payments/create?total=${getBasketTotal(basket) * 100}`
         });
         setClientSecret(response.data.clientSecret)
     }
 
     getClientSecret();
-}, [basket])
+    }, [basket])
+
+    console.log('The SECRET IS >>>> ', clientSecret)
 
 
-  console.log('secret', clientSecret)
+    const handleSubmit = async (event) => {
 
-  const handleSubmit = async (event) => {
-    // do all the fancy stripe stuff...
-    event.preventDefault();
-    setProcessing(true);
+        event.preventDefault();
+        setProcessing(true);
 
-    const payload = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-            card: elements.getElement(CardElement)
-        }, 
-    }).then(({ PaymentIntent }) => {
-        setSucceeded(true);
-        setError(null);
-        setProcessing(false);
-        history.replace('/orders');
-    })
-  }
+        const payload = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+                card: elements.getElement(CardElement)
+            }
+        }).then(({ paymentIntent }) => {
+            
+            //paymentIntent = paymentConfirmation
+
+            const ref = doc(db, 'users', user?.uid, 'orders', paymentIntent.id)
+            setDoc(ref, {
+                basket: basket,
+                amount: paymentIntent.amount,
+                created: paymentIntent.created
+            })
+            console.log('The ref IS >>>> ', ref)
+
+            setSucceeded(true);
+            setError(null);
+            setProcessing(false);
+
+            dispatch({
+                type: 'EMPTY_BASKET'
+            })
+
+
+
+            history.replace('/orders');
+        })
+    }
 
   const handleChange = event => {
     setDisabled(event.empty);
