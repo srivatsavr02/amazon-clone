@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useHistory } from 'react-router-dom/cjs/react-router-dom.min';
+import { useHistory } from 'react-router-dom';
 import { auth } from './firebase';
-import "./Login.css"
+import "./Login.css";
+import { 
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword 
+} from "firebase/auth";
 
 function Login() {
   const history = useHistory();
@@ -10,28 +14,26 @@ function Login() {
   const [password, setPassword] = useState('');
 
   const signIn = e => {
-    e.preventDefault();
+      e.preventDefault();
 
-    auth
-        .signInWithEmailAndPassword(email, password)
-        .then(auth => {
-            history.push('/')
-        })
-        .catch(error => alert(error.message))
+      signInWithEmailAndPassword(auth, email, password)
+      .then(auth => {
+        history.push('/')
+      })
+      .catch(error => alert(error.message))
   }
 
   const register = e => {
-    e.preventDefault();
+      e.preventDefault();
 
-    auth
-        .createUserWithEmailAndPassword(email, password)
-        .then((auth) => {
-            if (auth) {
-                history.push('/')
-            }
-        })
-        .catch(error => alert(error.message))
-}
+      createUserWithEmailAndPassword(auth, email, password)
+      .then((auth) => {
+          if (auth) {
+            history.push('/')
+          }
+      })
+      .catch(error => alert(error.message))
+  }
 
   return (
     <div className='login'>
